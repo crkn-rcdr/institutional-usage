@@ -106,8 +106,8 @@ def process_ips(insts_df):
         # Create empty list to store networks
         lon = []
 
-        if isinstance(row["IP Addresses"], str): # check if it is a non-null string
-            ip_list = row["IP Addresses"]
+        if isinstance(row["IPs"], str): # check if it is a non-null string
+            ip_list = row["IPs"]
             ip_list = [item for item in ip_list.split("\n") if any(char.isdigit() for char in item)]
     
 
@@ -120,9 +120,9 @@ def process_ips(insts_df):
                     lon.append(network)
 
             # Flatten lon 
-            lon = [network for network in lon if network and network != ""] if lon else []
+            lon = [network for sublist in lon for network in sublist if network != ""] if lon else []
 
-        insts_df.at[idx, "IP Addresses"] = lon
+        insts_df.at[idx, "IPs"] = lon
 
     return insts_df
 
@@ -141,10 +141,13 @@ def ips_to_df(file_path, skip_rows):
 
     # Select institution name and IP Addresses column
     # Later will have to accomodate to proxy as well
-    df = df[["Institution", "IP Addresses"]]
+    df = df[['Institution', 'IP Addresses']]
+
+    # Rename IP column
+    df = df.rename(columns={'IP Addresses': 'IPs'})
 
     # Remove rows where institution name is NaN 
-    df = df.dropna(subset=["Institution"]).reset_index(drop=True)
+    df = df.dropna(subset=['Institution']).reset_index(drop=True)
     return df
 
 def process_ip_file(file_path, skip_rows):
