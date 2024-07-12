@@ -53,6 +53,12 @@ def parse_ip(ip_str):
     # Check if the string matches the IP range pattern
     if re.match(ip_range_pattern, ip_str):
         start_ip, end_ip = ip_str.split('-')
+        # Make sure each part has no trailing zeros
+        start_parts = [str(int(item)) for item in start_ip.split('.')]
+        end_parts = [str(int(item)) for item in end_ip.split('.')]
+        # Update start_ip and end_ip
+        start_ip = '.'.join(start_parts)
+        end_ip = '.'.join(end_parts)
         return expand_ip_range(start_ip, end_ip)
     # Check for range within octets
     elif '-' in ip_str or '*' in ip_str:
