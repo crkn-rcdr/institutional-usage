@@ -1,44 +1,66 @@
 import pandas as pd
-from ipaddress import ip_address, ip_network, summarize_address_range
 import re
 
-def expand_ip_range(start_ip, end_ip):
+def is_ip_in_range(ip, start, end):
     """
-    Expands a range of IP addresses into a list of contiguous IPv4 networks.
+    Check if an IP address falls within a specified range.
 
-    Parameters:
-    start_ip (str): Starting IP address of the range.
-    end_ip (str): Ending IP address of the range.
+    Args:
+        ip (str): The IP address to check, in the format 'xxx.xxx.xxx.xxx'.
+        start (str): The starting IP address of the range, in the same format.
+        end (str): The ending IP address of the range, in the same format.
 
     Returns:
-    list: A list of ipaddress.IPv4Network objects representing the range.
+        bool: True if the IP address `ip` is within the range defined by `start` and `end`, False otherwise.
     """
-    start_ip = ip_address(start_ip)
-    end_ip = ip_address(end_ip)
-    return list(summarize_address_range(start_ip, end_ip))
+    # Convert IP addresses from strings to lists of integers for comparison
+    ip_parts = list(map(int, ip.split('.')))
+    start_parts = list(map(int, start.split('.')))
+    end_parts = list(map(int, end.split('.')))
+    
+    # Compare each octet of the IP address with the start and end ranges
+    for i in range(4):  # Assuming IPv4 addresses
+        if not (start_parts[i] <= ip_parts[i] <= end_parts[i]):
+            return False
+    
+    return True
+
+def is_ip_match(ip, ip_list):
+    """
+    Checks if an IP address matches any IP address in a list of IP addresses.
+
+    Args:
+        ip (str): A string representing a single IP address.
+        ip_list (list): A list of IP addresses, IP ranges and/or IP patterns.
+
+    Returns:
+        bool: True if the IP address `ip` matches any item in the IP addresses list `ip_list`, False otherwise.
+    """
+    for item in ip_list:
+        if isinstance(item, dict):
+            if is_ip_in_range(ip, item['start'], item['end']):
+                return True
+        elif isinstance(item, str):
+            if ip == item:
+                return True
+    return False
 
 def parse_ip(ip_str):
     """
-    Parse an IP address string and return the corresponding IPv4 network
-
-    This function handles three types of IP address inputs:
-    1. A single IP address, which will be converted to an IPv4 network.
-    2. A range of IP addresses specified using '*' or '-' (or a combination of both).
-    3. A range of IP addresses specified with two IP addresses separated by '-'.
+    Parse an IP address string and return either a single IP address or a dictionary
+        with start and end IP addresses.
 
     Args:
         ip_str (str): A string representing a single IP address or a range of IP addresses.
 
     Returns:
-        list: A list of ipaddress.IPv4Network objects representing the range or single address.
+        Union[str, dict]: 
+            - If the input is a single IP address, returns the IP address as a string.
+            - If the input is a range of IP addresses, returns a dictionary with 'start' and 'end' keys.
     """
     print(ip_str)
     # Remove spaces
     ip_str = ip_str.strip()
-
-    # Ignore repeated addresses
-    if ip_str.startswith("IPv6") or ip_str.startswith("IPv4"): 
-        return ""
     
     # Use regular expression to keep only numbers, ".", "*", and "-"
     ip_str = re.sub(r'[^0-9.*-]', '', ip_str)
@@ -59,15 +81,12 @@ def parse_ip(ip_str):
         # Update start_ip and end_ip
         start_ip = '.'.join(start_parts)
         end_ip = '.'.join(end_parts)
-        return expand_ip_range(start_ip, end_ip)
     # Check for range within octets
     elif '-' in ip_str or '*' in ip_str:
         parts = ip_str.split('.')
         start_parts = []
         end_parts = []
-        print(start_parts)
         for part in parts:
-            print(part)
             if '-' in part:
                 start, end = part.split('-')
                 start_parts.append(str(int(start))) # making sure there are no trailing zeros
@@ -78,25 +97,19 @@ def parse_ip(ip_str):
             else:
                 start_parts.append(str(int(part)))
                 end_parts.append(str(int(part)))
-        print("after")
-        print(start_parts)
-        print(end_parts)
 
         start_ip = '.'.join(start_parts)
         end_ip = '.'.join(end_parts)
-        print("start_ip:")
-        print(start_ip)
-        return expand_ip_range(start_ip, end_ip)
     else: # i.e. single address
         # Make sure each part has no trailing zeros
         parts = [str(int(item)) for item in ip_str.split('.')]
         # Update ip_str
         ip_str = '.'.join(parts)
-        # Create network
-        ip = ip_address(ip_str)
-        network = ip_network(ip)
-        return [network]
-
+        #print(ip_str)
+        return ip_str
+    
+    #print(f'start: {start_ip}\nend: {end_ip}')
+    return {'start': start_ip, 'end': end_ip}
 
 def process_ips(insts_df):
     """
@@ -110,25 +123,14 @@ def process_ips(insts_df):
     """
 
     for idx, row in insts_df.iterrows():
-        # Create empty list to store networks
-        lon = []
+        # Create empty list to store ips
+        ip_list = []
 
         if isinstance(row["IPs"], str): # check if it is a non-null string
             ip_list = row["IPs"]
-            ip_list = [item for item in ip_list.split("\n") if any(char.isdigit() for char in item)]
-    
+            ip_list = [parse_ip(item) for item in ip_list.split("\n") if any(char.isdigit() for char in item)]
 
-            for ip in ip_list:  
-                network = parse_ip(ip)
-                if isinstance(network, list):
-                    lon.extend(network)
-                else:
-                    lon.append(network)
-
-            # Flatten lon 
-            lon = [network for sublist in lon for network in sublist if network != ""] if lon else []
-
-        insts_df.at[idx, "IPs"] = lon
+        insts_df.at[idx, "IPs"] = ip_list
 
     return insts_df
 
@@ -153,7 +155,7 @@ def ips_to_df(file_path, skip_rows):
     df = df.rename(columns={'IP Addresses': 'IPs'})
 
     # Remove rows where institution name is NaN 
-    df = df.dropna(subset=['Institution']).reset_index(drop=True)
+    df = df.dropna(subset=['Institution', 'IPs']).reset_index(drop=True)
 
     return df
 
@@ -171,17 +173,3 @@ def process_ip_file(file_path, skip_rows):
     insts_df = ips_to_df(file_path, skip_rows)
     ips_df = process_ips(insts_df)
     return ips_df
-
-def is_ip_in_networks(ip_str, networks_list):
-    """
-    Check if an IP address is in any network in a list.
-
-    Args:
-        ip_str (str): The IP address to check.
-        networks_list (list): A list of IPv4Network objects to check against.
-
-    Returns:
-        bool: True if the IP is in any of the networks, False otherwise.
-    """
-    ip = ip_address(ip_str)
-    return any(ip in net for net in networks_list)
