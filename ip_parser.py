@@ -39,10 +39,13 @@ def is_ip_match(ip, ip_list):
     for item in ip_list:
         if isinstance(item, dict):
             if is_ip_in_range(ip, item['start'], item['end']):
+                #print(f'{ip} found in {item}')
                 return True
         elif isinstance(item, str):
             if ip == item:
+                #print(f'{ip} found in {item}')
                 return True
+            
     return False
 
 def parse_ip(ip_str):
@@ -58,7 +61,7 @@ def parse_ip(ip_str):
             - If the input is a single IP address, returns the IP address as a string.
             - If the input is a range of IP addresses, returns a dictionary with 'start' and 'end' keys.
     """
-    print(ip_str)
+    #print(ip_str)
     # Remove spaces
     ip_str = ip_str.strip()
     
@@ -107,7 +110,6 @@ def parse_ip(ip_str):
         ip_str = '.'.join(parts)
         #print(ip_str)
         return ip_str
-    
     #print(f'start: {start_ip}\nend: {end_ip}')
     return {'start': start_ip, 'end': end_ip}
 
@@ -157,6 +159,8 @@ def ips_to_df(file_path, skip_rows):
     # Remove rows where institution name is NaN 
     df = df.dropna(subset=['Institution', 'IPs']).reset_index(drop=True)
 
+    # Remove any leading and trailing spaces in each institution name
+    df = df.applymap(lambda name: name.strip() if isinstance(name, str) else name)
     return df
 
 def process_ip_file(file_path, skip_rows):
