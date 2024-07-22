@@ -104,7 +104,7 @@ def process_logs(log_file):
     return view_counts_df
 
 def main():
-    log_file = 'haproxy-traffic.log'
+    log_file = 'data/haproxy-traffic.log'
     view_counts_df = process_logs(log_file)
     # Uncomment to export view count to csv
     # view_counts_df.to_csv("data/result.csv", index=None)
