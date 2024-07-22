@@ -1,5 +1,7 @@
 import pandas as pd
 from ip_parser import process_ip_file, is_ip_match
+from dotenv import load_dotenv
+import os
 
 def filter_logs(df):
     """
@@ -11,7 +13,10 @@ def filter_logs(df):
     Returns:
     pd.DataFrame: Filtered DataFrame with matching rows.
     """
-    server_name = 'server/name'
+    # Load environment variables from .env file
+    load_dotenv()
+
+    server_name = os.getenv('SERVER_NAME')
     reqs_path = '{https|www.canadiana.ca}'
     http_req_ptrn = 'www.canadiana.ca/view/'
 
