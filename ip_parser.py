@@ -160,7 +160,8 @@ def ips_to_df(file_path, skip_rows):
     df = df.dropna(subset=['Institution', 'IPs']).reset_index(drop=True)
 
     # Remove any leading and trailing spaces in each institution name
-    df = df.applymap(lambda name: name.strip() if isinstance(name, str) else name)
+    df['Institution'] = df['Institution'].apply(lambda name: name.strip() if isinstance(name, str) else name)
+
     return df
 
 def process_ip_file(file_path, skip_rows):
