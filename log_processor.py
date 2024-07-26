@@ -120,11 +120,6 @@ def count_views(log_file, ips_df, inst_name):
                   It contains the institution name and the total number of views 
                   recorded for that institution.
     """
-    # Convert IP addresses file to pandas DataFrame
-    ip_file = 'data/IP_addresses.xlsx'
-    # Specify the number of rows to skip at the beginning of the Excel file (e.g., header rows)
-    skip_rows = 2
-
     # Get row for inst_name
     # add case that institution not found ask again or provide options idk
     inst_ips = ips_df[ips_df['Institution'] == inst_name]
