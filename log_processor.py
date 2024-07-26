@@ -103,11 +103,67 @@ def process_logs(log_file):
 
     return view_counts_df
 
+def count_views(log_file, ips_df, inst_name):
+    """
+    Counts the number of views for a specific institution based on IP logs.
+
+    This function reads an Excel file containing IP addresses associated with institutions, 
+    filters log data based on IP addresses, and counts the number of accesses for the 
+    specified institution.
+
+    Parameters:
+    log_file (str): Path to the log file containing IP address access records.
+    inst_name (str): The name of the institution to count views for.
+
+    Returns:
+    pd.DataFrame: A DataFrame with two columns: `institution` and `views_count`. 
+                  It contains the institution name and the total number of views 
+                  recorded for that institution.
+    """
+    # Convert IP addresses file to pandas DataFrame
+    ip_file = 'data/IP_addresses.xlsx'
+    # Specify the number of rows to skip at the beginning of the Excel file (e.g., header rows)
+    skip_rows = 2
+
+    # Get row for inst_name
+    # add case that institution not found ask again or provide options idk
+    inst_ips = ips_df[ips_df['Institution'] == inst_name]
+    
+    # Extract the IP networks for the institution
+    ip_networks = inst_ips.iloc[0]['IPs']
+
+    # Access log file
+    log_df = logs_to_df(log_file)
+
+    # Filter log_df 
+    filtered_log_df = filter_logs(log_df)
+
+    # Count accesses for the specific institution
+    mask = filtered_log_df['client_ip'].apply(lambda x: is_ip_match(x, ip_networks))
+    views_count = mask.sum()
+
+    # Create DataFrame for the view counts
+    view_counts_df = pd.DataFrame({'institution': [inst_name], 'views_count': [views_count]})
+
+    return view_counts_df
+
+
 def main():
     log_file = 'data/haproxy-traffic.log'
-    view_counts_df = process_logs(log_file)
+    ip_file = 'data/IP_addresses.xlsx'
+    skip_rows = 2
+    inst_name = 'Canadian Research Knowledge Network'
+
+    # Load institutions from the IP addresses file
+    ips_df = process_ip_file(ip_file, skip_rows)
+    
+    # Count the number of views for inst_name
+    view_counts_df = count_views(log_file, ips_df, inst_name)
+
     # Uncomment to export view count to csv
     # view_counts_df.to_csv("data/result.csv", index=None)
+    
+    print(view_counts_df)
 
 if __name__ == '__main__':
     main()
