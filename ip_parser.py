@@ -85,7 +85,7 @@ def parse_ip(ip_str):
         start_ip = '.'.join(start_parts)
         end_ip = '.'.join(end_parts)
     # Check for range within octets
-    elif '-' in ip_str or '*' in ip_str:
+    elif '-' in ip_str or '*' in ip_str: 
         parts = ip_str.split('.')
         start_parts = []
         end_parts = []
