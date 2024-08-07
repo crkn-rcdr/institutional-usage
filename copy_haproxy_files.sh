@@ -1,5 +1,6 @@
-# This script copies log files from one platform server to my personal VM. Currently the smbclient utility is not installed on the platform servers
-# so I'm copying the files over to my VM before transferring them to the usagereport share on teran.
+# This script copies log files from one platform server to my personal VM. Currently the smbclient utility is 
+# not installed on the platform servers so I'm copying the files over to my VM before transferring them to the 
+# usagereport share on teran.
 
 
 #!/bin/bash
