@@ -3,6 +3,7 @@
 # appropriate folders in the usagereport share on teran.
 
 # Runtime: 4 minutes
+# Replace SAMBA_PASS placeholder with actual password
 
 #!/bin/bash
 
@@ -14,6 +15,7 @@ LOCAL_PATHS=("/home/abhinavk/Logs/Arinto/" "/home/abhinavk/Logs/Altano/" "/home/
 SAMBA_SHARE="teran.tor.c7a.ca/usagereport"
 SAMBA_PATHS=("Logs/Arinto" "Logs/Altano" "Logs/Tokaji" "Logs/Traminac")
 SAMBA_USER="abhinavk"
+SAMBA_PASS="placeholder"
 
 # Loop through each remote host and corresponding local path
 for i in "${!REMOTE_HOSTS[@]}"; do
