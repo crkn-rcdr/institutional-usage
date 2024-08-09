@@ -3,7 +3,6 @@
 # appropriate folders in the usagereport share on teran.
 
 # Runtime: 4 minutes
-# Replace SAMBA_PASS placeholder with actual password
 
 #!/bin/bash
 
@@ -14,8 +13,7 @@ REMOTE_PATH="/var/log/"
 LOCAL_PATHS=("/home/abhinavk/Logs/Arinto/" "/home/abhinavk/Logs/Altano/" "/home/abhinavk/Logs/Tokaji/" "/home/abhinavk/Logs/Traminac/")
 SAMBA_SHARE="teran.tor.c7a.ca/usagereport"
 SAMBA_PATHS=("Logs/Arinto" "Logs/Altano" "Logs/Tokaji" "Logs/Traminac")
-SAMBA_USER="abhinavk"
-SAMBA_PASS="placeholder"
+
 
 # Loop through each remote host and corresponding local path
 for i in "${!REMOTE_HOSTS[@]}"; do
@@ -31,7 +29,7 @@ for i in "${!REMOTE_HOSTS[@]}"; do
     echo "Files copied successfully from ${REMOTE_HOST} to ${LOCAL_PATH}."
 
     # Use smbclient to copy files to Samba share
-    smbclient "//${SAMBA_SHARE}" -U "${SAMBA_USER}%${SAMBA_PASS}" -c "prompt; lcd ${LOCAL_PATH}; cd ${SAMBA_PATH}; mput haproxy-traffic*"
+    smbclient "//${SAMBA_SHARE}" -N -c "prompt; lcd ${LOCAL_PATH}; cd ${SAMBA_PATH}; mput haproxy-traffic*"
 
     # Verify the operation
     if [ $? -eq 0 ]; then
@@ -43,3 +41,4 @@ for i in "${!REMOTE_HOSTS[@]}"; do
     echo "Error occurred during file transfer from ${REMOTE_HOST}."
   fi
 done
+
