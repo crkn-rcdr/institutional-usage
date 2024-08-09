@@ -14,7 +14,6 @@ LOCAL_PATHS=("/home/abhinavk/Logs/Arinto/" "/home/abhinavk/Logs/Altano/" "/home/
 SAMBA_SHARE="teran.tor.c7a.ca/usagereport"
 SAMBA_PATHS=("Logs/Arinto" "Logs/Altano" "Logs/Tokaji" "Logs/Traminac")
 SAMBA_USER="abhinavk"
-SAMBA_PASS="tdbsam"
 
 # Loop through each remote host and corresponding local path
 for i in "${!REMOTE_HOSTS[@]}"; do
