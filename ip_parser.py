@@ -149,10 +149,12 @@ def ips_to_df(file_path, skip_rows):
     """
     df = pd.read_excel(file_path, skiprows=skip_rows)
 
-    # Select institution name and IP Addresses column
-    # Later will have to accomodate to proxy as well
-    df = df[['Institution', 'IP Addresses']]
+    # Select institution name, IP Addresses and Email columns
+    df = df[['Institution', 'IP Addresses', 'Email']]
 
+    # Extract email domains
+    df['Domain'] = df['Email'].str.split('@').str[1].str.split('.').str[0]
+    
     # Rename IP column
     df = df.rename(columns={'IP Addresses': 'IPs'})
 
