@@ -42,51 +42,6 @@ def update_file(new_df, master_file_path, institution):
         new_df.to_excel(writer, sheet_name=institution, index=None)
     print(f"{'Updated' if file_exists else 'Created'} file: {master_file_path}, sheet: {institution}")
 
-def append_to_master_csv(new_df, master_file_path):
-    """
-    Appends a new DataFrame to an existing master CSV file.
-    If the master file doesn't exist, it creates a new one.
-
-    Parameters:
-    new_df (pd.DataFrame): The new DataFrame to append.
-    master_file_path (str): Path to the master CSV file.
-
-    Returns:
-    pd.DataFrame: The updated master DataFrame.
-    """
-    # Check if master file exists
-    if os.path.exists(master_file_path):
-        # Read existing master file
-        master_df = pd.read_csv(master_file_path)
-        
-        # Concatenate new data with existing data
-        updated_df = pd.concat([master_df, new_df], ignore_index=True)
-    
-        # Remove duplicates based on 'month' and 'day'
-        updated_df = updated_df.drop_duplicates(subset=['month', 'day'], keep='last')
-        
-        # Define the order for months
-        month_order = [
-            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-        ]
-        
-        # Convert 'month' to a categorical type with a specified order
-        updated_df ['month'] = pd.Categorical(updated_df['month'], categories=month_order, ordered=True)
-
-        # Sort the DataFrame by 'month' and 'day'
-        updated_df  = updated_df.sort_values(by=['month', 'day'])
-        
-        # Sort the DataFrame
-        updated_df = updated_df.sort_values(['month', 'day'])
-    else:
-        # If master file doesn't exist, use the new DataFrame as is
-        updated_df = new_df
-
-    # Save the updated DataFrame to the master file
-    updated_df.to_csv(master_file_path, index=False)
-
-    return updated_df
-
 def count_views(log_file, inst_ips):
     """
     Counts the number of views for a specific institution based on logs.
