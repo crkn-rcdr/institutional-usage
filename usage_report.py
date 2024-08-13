@@ -1,8 +1,91 @@
 
-from log_processor import logs_to_df, filter_logs
+from filter_logs import filter_ips
 from ip_parser import process_ip_file
-import pandas as pd
+import pandas as pd 
 import argparse
+import os
+
+def update_file(new_df, master_file_path, institution):
+    # Create the directory if it doesn't exist
+    os.makedirs(os.path.dirname(master_file_path), exist_ok=True)
+
+    # Check if the file exists
+    file_exists = os.path.isfile(master_file_path)
+
+    if file_exists:
+        try:
+            # Try to read the existing sheet
+            existing_df = pd.read_excel(master_file_path, sheet_name=institution)
+            
+            # # Merge existing data with new data
+            # new_df = pd.concat([existing_df, new_df]).drop_duplicates(keep='last').reset_index(drop=True)
+
+            # Merge existing data with new data
+            combined_df = pd.concat([existing_df, new_df])
+            
+            # Convert all columns to string for consistent comparison
+            combined_df = combined_df.astype(str)
+            
+            # Drop duplicates
+            combined_df = combined_df.drop_duplicates(keep='last').reset_index(drop=True)
+            
+            # Convert numbers back to integers
+            combined_df[1:] = combined_df[1:].astype(int)
+            
+            with pd.ExcelWriter(master_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                combined_df.to_excel(writer, sheet_name=institution, index=None)
+        except ValueError:
+            # Sheet doesn't exist, so we'll just use new_df as is
+            pass
+            
+    with pd.ExcelWriter(master_file_path, engine='openpyxl', mode='w') as writer:
+        new_df.to_excel(writer, sheet_name=institution, index=None)
+    print(f"{'Updated' if file_exists else 'Created'} file: {master_file_path}, sheet: {institution}")
+
+def append_to_master_csv(new_df, master_file_path):
+    """
+    Appends a new DataFrame to an existing master CSV file.
+    If the master file doesn't exist, it creates a new one.
+
+    Parameters:
+    new_df (pd.DataFrame): The new DataFrame to append.
+    master_file_path (str): Path to the master CSV file.
+
+    Returns:
+    pd.DataFrame: The updated master DataFrame.
+    """
+    # Check if master file exists
+    if os.path.exists(master_file_path):
+        # Read existing master file
+        master_df = pd.read_csv(master_file_path)
+        
+        # Concatenate new data with existing data
+        updated_df = pd.concat([master_df, new_df], ignore_index=True)
+    
+        # Remove duplicates based on 'month' and 'day'
+        updated_df = updated_df.drop_duplicates(subset=['month', 'day'], keep='last')
+        
+        # Define the order for months
+        month_order = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ]
+        
+        # Convert 'month' to a categorical type with a specified order
+        updated_df ['month'] = pd.Categorical(updated_df['month'], categories=month_order, ordered=True)
+
+        # Sort the DataFrame by 'month' and 'day'
+        updated_df  = updated_df.sort_values(by=['month', 'day'])
+        
+        # Sort the DataFrame
+        updated_df = updated_df.sort_values(['month', 'day'])
+    else:
+        # If master file doesn't exist, use the new DataFrame as is
+        updated_df = new_df
+
+    # Save the updated DataFrame to the master file
+    updated_df.to_csv(master_file_path, index=False)
+
+    return updated_df
 
 def count_views(log_file, inst_ips):
     """
@@ -26,36 +109,58 @@ def count_views(log_file, inst_ips):
     ip_networks = inst_ips.iloc[0]['IPs']
 
     # Access log file
-    log_df = logs_to_df(log_file)
-
-    # some comment here 
-    reqs_paths = ['{https|www.canadiana.ca}', '{https|gac.canadiana.ca}', '{https|parl.canadiana.ca}', '{https|heritage.canadiana.ca}']
-    http_req_ptrn = '/view'
+    log_df = pd.read_csv(log_file, index_col=False, on_bad_lines='warn')
 
     # Filter log_df 
-    filtered_log_df = filter_logs(log_df, reqs_paths, http_req_ptrn, ip_networks)
-    print(filtered_log_df)
-    filtered_log_df.to_csv("data/filtered_logs.csv", index=None)
+    filtered = filter_ips(log_df, ip_networks)
+    print(filtered)
+    filtered.to_csv("data/filtered_logs.csv", index=None)
 
-    # Group by 'month' and 'day', and count views
-    usage_df = filtered_log_df.groupby(['month', 'day']).size().reset_index(name='usage')
+    # Group by month, day, and request_path, then count occurrences
+    grouped = filtered.groupby(['month', 'day', 'request_path']).size().reset_index(name='count')
 
+    # Pivot the result
+    usage_df = grouped.pivot(index=['month', 'day'], columns='request_path', values='count').reset_index()
+
+    # Fill NaN values with 0
+    usage_df = usage_df.fillna(0).astype({col: int for col in usage_df.columns if col not in ['month']})
+    
     # Define the order for months
     month_order = [
         'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ]
-
+    
     # Convert 'month' to a categorical type with a specified order
     usage_df['month'] = pd.Categorical(usage_df['month'], categories=month_order, ordered=True)
 
     # Sort the DataFrame by 'month' and 'day'
     usage_df = usage_df.sort_values(by=['month', 'day'])
 
-    # Reset index
-    usage_df.reset_index(drop=True, inplace=True)
+    # Reset index if needed
+    usage_df = usage_df.reset_index(drop=True)
 
+    # Define column names
+    rename_dict = {'{https|www.canadiana.ca}': 'canadiana', 
+                   '{https|gac.canadiana.ca}': 'gac', 
+                   '{https|parl.canadiana.ca}': 'parl',
+                   '{https|heritage.canadiana.ca}': 'heritage'}
+    
+    # Rename existing columns
+    usage_df = usage_df.rename(columns=rename_dict)
+    
+    # Add missing columns with 0 values
+    for old_col, new_col in rename_dict.items():
+        if new_col not in usage_df.columns:
+            usage_df[new_col] = 0
+    
+    # Calculate total usage
+    usage_df['total'] = usage_df['heritage'] + usage_df['canadiana'] + usage_df['parl'] + usage_df['gac']
+    
+    # Reorder columns, including the new total_usage column
+    column_order = ['month', 'day', 'heritage', 'canadiana', 'parl', 'gac', 'total']
+    usage_df = usage_df[column_order]
+    
     return usage_df
-
 
 def check_inst_name(inst_ips, inst_name):
     """
@@ -87,8 +192,7 @@ def main():
     # Add arguments for the institution name and log file(s)
     parser.add_argument('institution', type=str, help='The institution for which to generate the usage report.')
     parser.add_argument('logs', type=str, help='The logs to process.')
-    #parser.add_argument('logs', nargs='+', type=str, help='The logs to process.')
-
+    
     # Parse the arguments
     args = parser.parse_args()
 
@@ -101,22 +205,30 @@ def main():
     # Load institutions from the IP addresses file
     ips_df = process_ip_file(ip_file, skip_rows)
 
-    # Normalize both the DataFrame column and the argument for case-insensitive comparison
-    inst_name_lower = args.institution.lower()
-    ips_df['Institution_lower'] = ips_df['Institution'].str.lower()
-
-    # Get row for institution name
-    inst_ips = ips_df[ips_df['Institution_lower'] == inst_name_lower]
+    # Get institution name 
+    inst_name = args.institution
     
-    if check_inst_name(inst_ips, args.institution):
+    # Get row for institution
+    inst_ips = ips_df[(ips_df['Institution'].str.lower() == inst_name.lower())
+                      | (ips_df['Domain'].str.lower() == inst_name.lower())]
+    
+    if check_inst_name(inst_ips, inst_name):
         # Count the number of views for inst_name
         view_counts_df = count_views(args.logs, inst_ips)
-
+        
+        file_name = "data/reports/usage-report.xlsx"
+        
+        #view_counts_df = append_to_master_csv(view_counts_df, file_name)
         # Export view count to csv
-        view_counts_df.to_csv("data/result.csv", index=None, header=["Month","Day","Usage"])
-    
-        print(view_counts_df)
+        #view_counts_df.to_csv(file_name, index=None)
+        
+        if len(inst_ips['Institution'].iloc[0]) > 30:
+            inst_name = inst_ips['Domain'].iloc[0].upper()
+        else:
+            inst_name = inst_ips['Institution'].iloc[0]
+            
+        update_file(view_counts_df, file_name, inst_name)
+        print(view_counts_df.to_string(index=False))
 
 if __name__ == '__main__':
-
     main()
