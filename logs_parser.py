@@ -24,7 +24,7 @@ def logs_parser(folder_path):
     logs_list = []
 
     for file_name in file_names:
-        file_name = f'data/logs/{file_name}'
+        file_name = f'{folder_path}/{file_name}'
         df = logs_to_df(file_name)
         
         filtered = filter_logs(df, reqs_paths, http_req_ptrn)
