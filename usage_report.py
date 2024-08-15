@@ -5,60 +5,117 @@ import pandas as pd
 import argparse
 import os
 
-def update_file(new_df, master_file_path, institution):
-    # Create the directory if it doesn't exist
-    os.makedirs(os.path.dirname(master_file_path), exist_ok=True)
+def sort_and_filter(df):
+    """
+    Processes and sorts a DataFrame by month and day, while handling missing values and removing duplicates.
 
-    # Check if the file exists
+    Parameters:
+    df (pd.DataFrame): The DataFrame to process.
+
+    Returns:
+    pd.DataFrame: A DataFrame that is sorted by 'Month', 'Day', and 'Total', with duplicates removed and missing values handled.
+    """
+    int_columns = ['Day', 'Heritage', 'Canadiana', 'GAC', 'Parl', 'Total']  
+    
+    # Fill missing values in the specified columns with 0 and convert the columns to integer type 
+    df[int_columns] = df[int_columns].fillna(0).astype(int)
+    
+    # Define the order for months
+    month_order = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ]
+    
+    # Convert 'month' to a categorical type with a specified order
+    df['Month'] = pd.Categorical(df['Month'], categories=month_order, ordered=True)
+
+    # Sort the DataFrame by 'month', 'day' and 'total' 
+    df = df.sort_values(by=['Month', 'Day', 'Total'])
+    
+    # Drop duplicates, keep the one with most views
+    df = df.drop_duplicates(['Month', 'Day'], keep='last')
+    
+    return df
+    
+def update_file(new_df, master_file_path, institution):
+    """
+    Updates an Excel file with new data from a DataFrame. If the specified sheet 
+    exists in the file, the function appends the new data to it, updates the existing 
+    data, and saves it. If the sheet does not exist, it creates a new sheet with the 
+    provided data. If the file does not exist, it creates a new file and adds the sheet.
+
+    Parameters:
+    new_df : pd.DataFrame
+        The DataFrame containing new data to be added to the Excel file. The DataFrame 
+        should have a column named 'month' that will be sorted according the year calendar order
+        and should include columns 'day' and 'total'.
+
+    master_file_path : str
+        The path to the Excel file to be updated. This includes the filename and should 
+        end with '.xlsx'.
+
+    institution : str
+        The name of the sheet in the Excel file where data should be updated or created.
+
+    Returns:
+    None
+        This function does not return any value. It updates or creates an Excel file and 
+        sheet as specified
+    """
+    os.makedirs(os.path.dirname(master_file_path), exist_ok=True)
     file_exists = os.path.isfile(master_file_path)
+    print(f"File exists: {file_exists}")
 
     if file_exists:
         try:
-            # Try to read the existing sheet
             existing_df = pd.read_excel(master_file_path, sheet_name=institution)
-            
-            # # Merge existing data with new data
-            # new_df = pd.concat([existing_df, new_df]).drop_duplicates(keep='last').reset_index(drop=True)
+            print(f"Successfully read existing sheet: {institution}")
 
-            # Merge existing data with new data
-            combined_df = pd.concat([existing_df, new_df])
-            
-            # Convert all columns to string for consistent comparison
-            combined_df = combined_df.astype(str)
-            
-            # Drop duplicates
-            combined_df = combined_df.drop_duplicates(keep='last').reset_index(drop=True)
-            
-            # Convert numbers back to integers
-            combined_df[1:] = combined_df[1:].astype(int)
+            combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+
+            combined_df = sort_and_filter(combined_df)
             
             with pd.ExcelWriter(master_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
                 combined_df.to_excel(writer, sheet_name=institution, index=None)
+            print(f"Updated existing sheet: {institution}")
         except ValueError:
-            # Sheet doesn't exist, so we'll just use new_df as is
-            pass
-            
-    with pd.ExcelWriter(master_file_path, engine='openpyxl', mode='w') as writer:
-        new_df.to_excel(writer, sheet_name=institution, index=None)
-    print(f"{'Updated' if file_exists else 'Created'} file: {master_file_path}, sheet: {institution}")
+            print(f"Sheet {institution} does not exist. Creating new sheet.")
+            new_df = sort_and_filter(new_df)
+            with pd.ExcelWriter(master_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                new_df.to_excel(writer, sheet_name=institution, index=None)
+    else:
+        print(f"File does not exist. Creating new file and sheet.")
+        new_df = sort_and_filter(new_df) 
+        with pd.ExcelWriter(master_file_path, engine='openpyxl', mode='w') as writer:
+            new_df.to_excel(writer, sheet_name=institution, index=None)
 
+    print(f"{'Updated' if file_exists else 'Created'} file: {master_file_path}, sheet: {institution}")
+    
 def count_views(log_file, inst_ips):
     """
     Counts the number of views for a specific institution based on logs.
 
-    This function reads a log file, filters the log data based on IP addresses associated with an institution, 
-    and counts the number of accesses for that institution. It then groups the data by month and day, and sorts the 
-    results chronologically.
+    This function processes a log file to count the number of accesses for an institution by filtering log entries 
+    based on associated IP addresses. The counts are aggregated by month and day, and the results are presented 
+    in a DataFrame with columns for each request path and a total count of views.
 
     Parameters:
-    log_file (str): Path to the log file containing IP address access records.
-    inst_ips (pd.DataFrame): DataFrame containing IP address ranges associated with a institution.
+    log_file : str
+        Path to the CSV log file containing IP address access records. The file is read into a DataFrame for processing.
+
+    inst_ips : pd.DataFrame
+        DataFrame containing IP address ranges associated with the institution. The first row's 'IPs' column is used 
+        to filter the log data.
 
     Returns:
-    pd.DataFrame: A DataFrame with three columns:
-                  - `month`: The month of the recorded views.
-                  - `day`: The day of the month when the views occurred.
-                  - `usage`: The total number of views recorded for that institution on each day.
+    pd.DataFrame
+        A DataFrame with the following columns:
+        - `Month`: The month of the recorded views.
+        - `Day`: The day of the month when the views occurred.
+        - `Heritage`: Number of views for the 'heritage' request path.
+        - `Canadiana`: Number of views for the 'canadiana' request path.
+        - `Parl`: Number of views for the 'parl' request path.
+        - `GAC`: Number of views for the 'gac' request path.
+        - `Total`: Total number of views across all request paths for each day.
     """
     # Extract the IP networks for the institution
     ip_networks = inst_ips.iloc[0]['IPs']
@@ -79,26 +136,14 @@ def count_views(log_file, inst_ips):
 
     # Fill NaN values with 0
     usage_df = usage_df.fillna(0).astype({col: int for col in usage_df.columns if col not in ['month']})
-    
-    # Define the order for months
-    month_order = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ]
-    
-    # Convert 'month' to a categorical type with a specified order
-    usage_df['month'] = pd.Categorical(usage_df['month'], categories=month_order, ordered=True)
-
-    # Sort the DataFrame by 'month' and 'day'
-    usage_df = usage_df.sort_values(by=['month', 'day'])
-
-    # Reset index if needed
-    usage_df = usage_df.reset_index(drop=True)
 
     # Define column names
-    rename_dict = {'{https|www.canadiana.ca}': 'canadiana', 
-                   '{https|gac.canadiana.ca}': 'gac', 
-                   '{https|parl.canadiana.ca}': 'parl',
-                   '{https|heritage.canadiana.ca}': 'heritage'}
+    rename_dict = {'month': 'Month',
+                   'day': 'Day',
+                   '{https|www.canadiana.ca}': 'Canadiana', 
+                   '{https|gac.canadiana.ca}': 'GAC', 
+                   '{https|parl.canadiana.ca}': 'Parl',
+                   '{https|heritage.canadiana.ca}': 'Heritage'}
     
     # Rename existing columns
     usage_df = usage_df.rename(columns=rename_dict)
@@ -109,10 +154,10 @@ def count_views(log_file, inst_ips):
             usage_df[new_col] = 0
     
     # Calculate total usage
-    usage_df['total'] = usage_df['heritage'] + usage_df['canadiana'] + usage_df['parl'] + usage_df['gac']
+    usage_df['Total'] = usage_df['Heritage'] + usage_df['Canadiana'] + usage_df['Parl'] + usage_df['GAC']
     
     # Reorder columns, including the new total_usage column
-    column_order = ['month', 'day', 'heritage', 'canadiana', 'parl', 'gac', 'total']
+    column_order = ['Month', 'Day', 'Heritage', 'Canadiana', 'GAC', 'Parl', 'Total']
     usage_df = usage_df[column_order]
     
     return usage_df
@@ -151,12 +196,11 @@ def main():
     # Parse the arguments
     args = parser.parse_args()
 
-    #log_file = 'data/haproxy-traffic.log'
-    #log_file = 'data/crkn-test.log'
     ip_file = 'data/IP_addresses.xlsx'
     skip_rows = 2
-    #inst_name = 'Canadian Research Knowledge Network'
 
+    #pd.set_option('display.max_columns', None)
+    
     # Load institutions from the IP addresses file
     ips_df = process_ip_file(ip_file, skip_rows)
 
@@ -173,14 +217,12 @@ def main():
         
         file_name = "data/reports/usage-report.xlsx"
         
-        #view_counts_df = append_to_master_csv(view_counts_df, file_name)
-        # Export view count to csv
-        #view_counts_df.to_csv(file_name, index=None)
-        
         if len(inst_ips['Institution'].iloc[0]) > 30:
             inst_name = inst_ips['Domain'].iloc[0].upper()
+            #print(f"Need to use domain: {inst_name}")
         else:
             inst_name = inst_ips['Institution'].iloc[0]
+            #print(f"Less than 30 chars: {inst_name}")
             
         update_file(view_counts_df, file_name, inst_name)
         print(view_counts_df.to_string(index=False))
