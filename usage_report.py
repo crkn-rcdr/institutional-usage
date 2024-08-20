@@ -126,7 +126,6 @@ def count_views(log_file, inst_ips):
     # Filter log_df 
     filtered = filter_ips(log_df, ip_networks)
     print(filtered)
-    filtered.to_csv("data/filtered_logs.csv", index=None)
 
     # Group by month, day, and request_path, then count occurrences
     grouped = filtered.groupby(['month', 'day', 'request_path']).size().reset_index(name='count')
@@ -196,20 +195,27 @@ def main():
     # Parse the arguments
     args = parser.parse_args()
 
-    ip_file = 'data/IP_addresses.xlsx'
+    #ip_file = 'data/IP_addresses.xlsx'
+    ip_file = 'data/IP.xlsx'
     skip_rows = 2
 
-    #pd.set_option('display.max_columns', None)
+    ip_file_exists = os.path.isfile(ip_file)
     
+    print("Loading IP Addresses file...")
     # Load institutions from the IP addresses file
     ips_df = process_ip_file(ip_file, skip_rows)
 
+    # Check if the DataFrame was loaded successfully
+    if ips_df is None:
+        print("Error loading IP addresses file. Exiting program.")
+        return 
+    
     # Get institution name 
     inst_name = args.institution
-    
+
     # Get row for institution
     inst_ips = ips_df[(ips_df['Institution'].str.lower() == inst_name.lower())
-                      | (ips_df['Domain'].str.lower() == inst_name.lower())]
+                    | (ips_df['Abbreviation'].str.lower() == inst_name.lower())]
     
     if check_inst_name(inst_ips, inst_name):
         # Count the number of views for inst_name
@@ -217,15 +223,19 @@ def main():
         
         file_name = "data/reports/usage-report.xlsx"
         
+        # Use institution name abbreviation if it exceeds 30 characters (Excel sheet naming limit)
         if len(inst_ips['Institution'].iloc[0]) > 30:
-            inst_name = inst_ips['Domain'].iloc[0].upper()
-            #print(f"Need to use domain: {inst_name}")
+            inst_name = inst_ips['Abbreviation'].iloc[0]
         else:
             inst_name = inst_ips['Institution'].iloc[0]
-            #print(f"Less than 30 chars: {inst_name}")
-            
-        update_file(view_counts_df, file_name, inst_name)
+        
         print(view_counts_df.to_string(index=False))
+        
+        # Update (or create new) institution sheet in usage reports file
+        update_file(view_counts_df, file_name, inst_name)
+        
+        print()
 
+        
 if __name__ == '__main__':
     main()
