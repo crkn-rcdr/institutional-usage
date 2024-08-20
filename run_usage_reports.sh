@@ -12,9 +12,11 @@ fi
 LOG_FILE="$1"
 
 # Define variables
-INSTITUTIONS=("crkn" "University of Toronto" "Université de Montréal" "University of Regina")
-
 PYTHON_SCRIPT="usage_report.py"
+file="institutions.txt"
+
+# Read institutions from file into an array
+IFS=$'\n' read -d '' -r -a INSTITUTIONS < "$file"
 
 # Loop through each institution and run the Python script with the log file
 for institution in "${INSTITUTIONS[@]}"; do
