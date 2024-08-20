@@ -24,7 +24,7 @@ def logs_parser(folder_path):
     logs_list = []
 
     for file_name in file_names:
-        file_name = f'{folder_path}/{file_name}'
+        file_name = os.path.join(folder_path, file_name)
         df = logs_to_df(file_name)
         
         filtered = filter_logs(df, reqs_paths, http_req_ptrn)
@@ -46,17 +46,17 @@ def main():
     # Parse the arguments
     args = parser.parse_args()
     
-    #folder_path = 'data/logs'
-    
     logs = logs_parser(args.folder)
-    # pd.set_option('display.max_columns', None)
-    # print(logs)
     
     # Get the current date
     today = date.today()
     
+    # Create the output directory if it doesn't exist
+    output_dir = os.path.join("data", "processed")
+    os.makedirs(output_dir, exist_ok=True)
+    
     # Create the file path with the current date
-    file_path = f"data/processed/logs_{today.strftime('%Y-%m-%d')}.csv"
+    file_path = os.path.join(output_dir, f"logs_{today.strftime('%Y-%m-%d')}.csv")
 
     # Save the DataFrame to the CSV file
     logs.to_csv(file_path, index=None)
