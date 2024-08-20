@@ -39,11 +39,11 @@ def is_ip_match(ip, ip_list):
     for item in ip_list:
         if isinstance(item, dict):
             if is_ip_in_range(ip, item['start'], item['end']):
-                #print(f'{ip} found in {item}')
+                # print(f'{ip} found in {item}')
                 return True
         elif isinstance(item, str):
             if ip == item:
-                #print(f'{ip} found in {item}')
+                # print(f'{ip} found in {item}')
                 return True
             
     return False
@@ -127,7 +127,7 @@ def process_ips(insts_df):
     for idx, row in insts_df.iterrows():
         # Create empty list to store ips
         ip_list = []
-
+    
         if isinstance(row["IPs"], str): # check if it is a non-null string
             ip_list = row["IPs"]
             ip_list = [parse_ip(item) for item in ip_list.split("\n") if any(char.isdigit() for char in item)]
@@ -145,26 +145,38 @@ def ips_to_df(file_path, skip_rows):
         skip_rows (int): Number of rows to skip at the beginning of the file (e.g., header rows).
         
     Returns:
-        pd.DataFrame: DataFrame containing the institution names and their processed IP addresses.
-    """
-    df = pd.read_excel(file_path, skiprows=skip_rows)
+        pd.DataFrame or None: 
+            - A DataFrame containing the institution names and their processed IP addresses if the file is successfully read.
+            - Returns `None` if the file is not found or cannot be read.
+    """ 
+    try:
+        df = pd.read_excel(file_path, skiprows=skip_rows)
 
-    # Select institution name, IP Addresses and Email columns
-    df = df[['Institution', 'IP Addresses', 'Email']]
+        # Select institution name, IP Addresses and Email columns
+        df = df[['Institution', 'IP Addresses', 'Abbreviation']]
 
-    # Extract email domains
-    df['Domain'] = df['Email'].str.split('@').str[1].str.split('.').str[0]
-    
-    # Rename IP column
-    df = df.rename(columns={'IP Addresses': 'IPs'})
+        # Rename IP column
+        df = df.rename(columns={'IP Addresses': 'IPs'})
 
-    # Remove rows where institution name is NaN 
-    df = df.dropna(subset=['Institution', 'IPs']).reset_index(drop=True)
+        # Remove rows where institution name is NaN 
+        df = df.dropna(subset=['Institution', 'IPs']).reset_index(drop=True)
 
-    # Remove any leading and trailing spaces in each institution name
-    df['Institution'] = df['Institution'].apply(lambda name: name.strip() if isinstance(name, str) else name)
+        # Remove any leading and trailing spaces in each institution name
+        df['Institution'] = df['Institution'].apply(lambda name: name.strip() if isinstance(name, str) else name)
 
-    return df
+        return df
+    except FileNotFoundError:
+        print(f"Error: The file at {file_path} was not found.")
+        return None
+
+    except pd.errors.EmptyDataError:
+        print("Error: The file is empty.")
+        return None
+
+    except pd.errors.ParserError:
+        print("Error: There was a problem parsing the file.")
+        return None
+        
 
 def process_ip_file(file_path, skip_rows):
     """
@@ -175,8 +187,15 @@ def process_ip_file(file_path, skip_rows):
         skip_rows (int): Number of rows to skip at the beginning of the file (e.g., header rows).
 
     Returns:
-        pd.DataFrame: DataFrame containing the institution names and their processed IP addresses.
+        pd.DataFrame or None: 
+            - A DataFrame containing the institution names and their processed IP addresses.
+            - Returns `None` if the file cannot be processed.
     """
+    # Attempt to load the DataFrame
     insts_df = ips_to_df(file_path, skip_rows)
-    ips_df = process_ips(insts_df)
-    return ips_df
+
+    # If loading was successful, process the IP addresses
+    if insts_df is not None:
+        return process_ips(insts_df)
+
+    return None
