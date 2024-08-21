@@ -121,7 +121,7 @@ def count_views(log_file, inst_ips):
     ip_networks = inst_ips.iloc[0]['IPs']
 
     # Access log file
-    log_df = pd.read_csv(log_file, index_col=False, on_bad_lines='warn')
+    log_df = pd.read_csv(log_file, index_col=False, on_bad_lines='skip')
 
     # Filter log_df 
     filtered = filter_ips(log_df, ip_networks)
@@ -148,7 +148,7 @@ def count_views(log_file, inst_ips):
     usage_df = usage_df.rename(columns=rename_dict)
     
     # Add missing columns with 0 values
-    for old_col, new_col in rename_dict.items():
+    for new_col in rename_dict.items():
         if new_col not in usage_df.columns:
             usage_df[new_col] = 0
     
@@ -195,12 +195,9 @@ def main():
     # Parse the arguments
     args = parser.parse_args()
 
-    #ip_file = 'data/IP_addresses.xlsx'
-    ip_file = 'data/IP.xlsx'
+    ip_file = 'data/IP_addresses.xlsx'
     skip_rows = 2
 
-    ip_file_exists = os.path.isfile(ip_file)
-    
     print("Loading IP Addresses file...")
     # Load institutions from the IP addresses file
     ips_df = process_ip_file(ip_file, skip_rows)
