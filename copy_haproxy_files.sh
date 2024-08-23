@@ -1,8 +1,6 @@
-# This script copies log files from all platform servers to the sambashare. Currently the smbclient utility is 
-# not installed on the platform servers so I'm copying the files over to my VM before transferring them to the 
-# appropriate folders in the usagereport share on teran.
+# This script copies log files from all platform servers to the sambashare.
 
-# Runtime: 4 minutes
+# Runtime: 1 minute
 
 #!/bin/bash
 
@@ -13,6 +11,10 @@ REMOTE_PATH="/var/log/"
 LOCAL_PATHS=("/home/abhinavk/Logs/Arinto/" "/home/abhinavk/Logs/Altano/" "/home/abhinavk/Logs/Tokaji/" "/home/abhinavk/Logs/Traminac/")
 SAMBA_SHARE="teran.tor.c7a.ca/usagereport"
 SAMBA_PATHS=("Logs/Arinto" "Logs/Altano" "Logs/Tokaji" "Logs/Traminac")
+SAMBA_USER="samba_guest"
+SAMBA_PASSWORD="/home/abhinavk/.samba_password"
+SSH_KEY_PATH="/home/abhinavk/.ssh/id_rsa"
+
 
 
 # Loop through each remote host and corresponding local path
@@ -22,14 +24,16 @@ for i in "${!REMOTE_HOSTS[@]}"; do
   SAMBA_PATH="${SAMBA_PATHS[$i]}"
 
   # Use scp to copy files to local path
-  scp "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}haproxy-traffic*" "$LOCAL_PATH"
+    scp -i "$SSH_KEY_PATH" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}haproxy-traffic*" "$LOCAL_PATH"
+
 
   # Verify the operation
   if [ $? -eq 0 ]; then
     echo "Files copied successfully from ${REMOTE_HOST} to ${LOCAL_PATH}."
 
     # Use smbclient to copy files to Samba share
-    smbclient "//${SAMBA_SHARE}" -N -c "prompt; lcd ${LOCAL_PATH}; cd ${SAMBA_PATH}; mput haproxy-traffic*"
+    smbclient "//${SAMBA_SHARE}" -U "${SAMBA_USER}%${SAMBA_PASSWORD}" -c "prompt; lcd ${LOCAL_PATH}; 		cd ${SAMBA_PATH}; mput haproxy-traffic*"
+
 
     # Verify the operation
     if [ $? -eq 0 ]; then
@@ -41,4 +45,3 @@ for i in "${!REMOTE_HOSTS[@]}"; do
     echo "Error occurred during file transfer from ${REMOTE_HOST}."
   fi
 done
-
