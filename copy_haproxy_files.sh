@@ -30,6 +30,9 @@ for i in "${!REMOTE_HOSTS[@]}"; do
   # Verify the operation
   if [ $? -eq 0 ]; then
     echo "Files copied successfully from ${REMOTE_HOST} to ${LOCAL_PATH}."
+    
+    # Decompress all .gz files in the local path
+    gunzip ${LOCAL_PATH}*.gz
 
     # Use smbclient to copy files to Samba share
     smbclient "//${SAMBA_SHARE}" -U "${SAMBA_USER}%${SAMBA_PASSWORD}" -c "prompt; lcd ${LOCAL_PATH}; 		cd ${SAMBA_PATH}; mput haproxy-traffic*"
