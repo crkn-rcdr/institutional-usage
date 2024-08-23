@@ -1,0 +1,81 @@
+CRKN
+Acadia University
+Cape Breton University
+Dalhousie University
+Memorial University of Newfoundland
+Mount Allison University
+Mount Saint Vincent University
+NSCAD University
+Saint Mary's University
+St. Francis Xavier University
+Université de Moncton
+Université Sainte-Anne
+University of New Brunswick (includes St. Thomas)
+University of Prince Edward Island
+Bishop's University
+Concordia University
+École Polytechnique de Montréal
+HEC Montréal
+McGill University
+Université de Montréal
+Université de Sherbrooke
+Ecole nationale d'administration publique (ENAP)
+Ecole de technologie supérieure (ETS)
+Institut national de la recherche scientifique (INRS)
+Télé-université (TELUQ)
+Université du Québec à Chicoutimi
+Université du Québec en Outaouais (UQO)
+Université du Québec à Montréal (UQAM)
+Université du Québec à Rimouski
+Université du Québec à Trois-Rivières
+Université du Québec en Abitibi-Temiscamingue (UQAT)
+Université Laval
+Partenariat des bibliotheques universitaires du Québec (PBUQ)Algoma University
+Brock University
+Carleton University
+Lakehead University
+Laurentian University
+McMaster University
+Nipissing University
+OCAD University
+Ontario Tech University
+Queen's University
+Royal Military College of Canada (RMC)
+Toronto Metropolitan University
+Trent University
+University of Guelph
+University of Ottawa
+University of Toronto
+University of Waterloo
+University of Windsor
+Western University
+Wilfrid Laurier University
+York University
+Athabasca University
+Brandon University
+Capilano University
+Concordia University of Edmonton
+The King's University
+Kwantlen Polytechnic University
+MacEwan University
+Mount Royal University
+Royal Roads University
+Simon Fraser University
+Thompson Rivers University
+Trinity Western University
+University of Alberta
+University of British Columbia
+University of Calgary
+University of Lethbridge
+University of Manitoba
+University of Northern British Columbia
+University of Regina
+University of Saskatchewan
+University of the Fraser Valley
+University of Victoria
+University of Winnipeg
+Vancouver Island University
+National Research Council Canada (NRC)
+NOSM University
+Université de Hearst
+Université de L'Ontario Français
