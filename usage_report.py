@@ -5,6 +5,24 @@ import pandas as pd
 import argparse
 import os
 
+def translate_month(month):
+    """
+    Translates an English month abbreviation to a bilingual 'English/French' format.
+
+    Parameters:
+    month (str): A three-letter abbreviation of the month in English (e.g., 'Jan', 'Feb').
+
+    Returns:
+    str: The month formatted as 'English/French' (e.g., 'Jan/Janv'). 
+         If the month is not recognized, the input is returned as 'month/month'.
+    """
+    month_translation = {
+        'Jan': 'Janv', 'Feb': 'Févr', 'Mar': 'Mars', 'Apr': 'Avr', 'May': 'Mai', 
+        'Jun': 'Juin', 'Jul': 'Juil', 'Aug': 'Août', 'Sep': 'Sept', 
+        'Oct': 'Oct', 'Nov': 'Nov', 'Dec': 'Déc'
+    }
+    return f"{month}/{month_translation.get(month, month)}"
+
 def sort_and_filter(df):
     """
     Processes and sorts a DataFrame by month and day, while handling missing values and removing duplicates.
@@ -15,27 +33,29 @@ def sort_and_filter(df):
     Returns:
     pd.DataFrame: A DataFrame that is sorted by 'Month', 'Day', and 'Total', with duplicates removed and missing values handled.
     """
-    int_columns = ['Day', 'Heritage', 'Canadiana', 'GAC', 'Parl', 'Total']  
+    # Column names updated
+    int_columns = ['Day/Jour', 'Héritage', 'Canadiana', 'GAC/AMC', 'Parliament/Parlement', 'Total']
     
     # Fill missing values in the specified columns with 0 and convert the columns to integer type 
     df[int_columns] = df[int_columns].fillna(0).astype(int)
     
-    # Define the order for months
+    # Hardcoded bilingual month order
     month_order = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan/Janv', 'Feb/Févr', 'Mar/Mars', 'Apr/Avr', 'May/Mai', 'Jun/Juin',
+        'Jul/Juil', 'Aug/Août', 'Sep/Sept', 'Oct/Oct', 'Nov/Nov', 'Dec/Déc'
     ]
     
-    # Convert 'month' to a categorical type with a specified order
-    df['Month'] = pd.Categorical(df['Month'], categories=month_order, ordered=True)
+    # Convert 'Month/Mois' to a categorical type with a specified order
+    df['Month/Mois'] = pd.Categorical(df['Month/Mois'], categories=month_order, ordered=True)
 
-    # Sort the DataFrame by 'month', 'day' and 'total' 
-    df = df.sort_values(by=['Month', 'Day', 'Total'])
+    # Sort the DataFrame by 'Month', 'Day', and 'Total' 
+    df = df.sort_values(by=['Month/Mois', 'Day/Jour', 'Total'])
     
     # Drop duplicates, keep the one with most views
-    df = df.drop_duplicates(['Month', 'Day'], keep='last')
+    df = df.drop_duplicates(['Month/Mois', 'Day/Jour'], keep='last')
     
     return df
-    
+
 def update_file(new_df, master_file_path, institution):
     """
     Updates an Excel file with new data from a DataFrame. If the specified sheet 
@@ -111,7 +131,7 @@ def count_views(log_file, inst_ips):
         A DataFrame with the following columns:
         - `Month`: The month of the recorded views.
         - `Day`: The day of the month when the views occurred.
-        - `Heritage`: Number of views for the 'heritage' request path.
+        - `Héritage`: Number of views for the 'heritage' request path.
         - `Canadiana`: Number of views for the 'canadiana' request path.
         - `Parl`: Number of views for the 'parl' request path.
         - `GAC`: Number of views for the 'gac' request path.
@@ -125,7 +145,6 @@ def count_views(log_file, inst_ips):
 
     # Filter log_df 
     filtered = filter_ips(log_df, ip_networks)
-    print(filtered)
 
     # Group by month, day, and request_path, then count occurrences
     grouped = filtered.groupby(['month', 'day', 'request_path']).size().reset_index(name='count')
@@ -136,27 +155,37 @@ def count_views(log_file, inst_ips):
     # Fill NaN values with 0
     usage_df = usage_df.fillna(0).astype({col: int for col in usage_df.columns if col not in ['month']})
 
-    # Define column names
-    rename_dict = {'month': 'Month',
-                   'day': 'Day',
-                   '{https|www.canadiana.ca}': 'Canadiana', 
-                   '{https|gac.canadiana.ca}': 'GAC', 
-                   '{https|parl.canadiana.ca}': 'Parl',
-                   '{https|heritage.canadiana.ca}': 'Heritage'}
+    # Updated rename dictionary with new column names
+    rename_dict = {
+        'month': 'Month/Mois',
+        'day': 'Day/Jour',
+        '{https|www.canadiana.ca}': 'Canadiana', 
+        '{https|gac.canadiana.ca}': 'GAC/AMC', 
+        '{https|parl.canadiana.ca}': 'Parliament/Parlement',
+        '{https|heritage.canadiana.ca}': 'Héritage'
+    }
     
     # Rename existing columns
     usage_df = usage_df.rename(columns=rename_dict)
     
+    # Translate the 'Month/Mois' column to bilingual format
+    usage_df['Month/Mois'] = usage_df['Month/Mois'].apply(translate_month)
+     
     # Add missing columns with 0 values
-    for new_col in rename_dict.items():
+    for old_col, new_col in rename_dict.items():
         if new_col not in usage_df.columns:
             usage_df[new_col] = 0
     
-    # Calculate total usage
-    usage_df['Total'] = usage_df['Heritage'] + usage_df['Canadiana'] + usage_df['Parl'] + usage_df['GAC']
+    # Hardcode the total column calculation
+    usage_df['Total'] = (
+        usage_df['Héritage'] + 
+        usage_df['Canadiana'] + 
+        usage_df['Parliament/Parlement'] + 
+        usage_df['GAC/AMC']
+    )
     
     # Reorder columns, including the new total_usage column
-    column_order = ['Month', 'Day', 'Heritage', 'Canadiana', 'GAC', 'Parl', 'Total']
+    column_order = ['Month/Mois', 'Day/Jour', 'Héritage', 'Canadiana', 'GAC/AMC', 'Parliament/Parlement', 'Total']
     usage_df = usage_df[column_order]
     
     return usage_df
