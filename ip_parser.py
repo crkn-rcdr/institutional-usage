@@ -115,24 +115,32 @@ def parse_ip(ip_str):
 
 def process_ips(insts_df):
     """
-    Processes a DataFrame of institutions to parse and clean IP addresses.
+    Processes a DataFrame of institutions to parse and clean IP addresses and Proxy Servers.
 
     Args:
-        insts_df (pd.DataFrame): DataFrame containing institution data with a column 'IP Address'.
+        insts_df (pd.DataFrame): DataFrame containing institution data with columns 'IP Addresses' and 'Proxy Server'.
         
     Returns:
-        pd.DataFrame: DataFrame with the 'IP Address' column containing parsed and cleaned IP addresses.
+        pd.DataFrame: DataFrame with the 'IP Addresses' column containing parsed and cleaned IP addresses and Proxy Servers.
     """
 
     for idx, row in insts_df.iterrows():
         # Create empty list to store ips
         ip_list = []
+        proxy_list = []
     
-        if isinstance(row["IPs"], str): # check if it is a non-null string
-            ip_list = row["IPs"]
-            ip_list = [parse_ip(item) for item in ip_list.split("\n") if any(char.isdigit() for char in item)]
+        if isinstance(row["IP Addresses"], str): # check if it is a non-null string
+            ip_list = row["IP Addresses"]
+            ip_list = [parse_ip(item) for item in ip_list.split("\n") if re.search(r'^\s*\d+[\d\.\-\*\s]*', item)]
 
-        insts_df.at[idx, "IPs"] = ip_list
+        if isinstance(row["Proxy Server"], str) and not isinstance(row["Proxy Server"], list):
+            proxy_list = row["Proxy Server"]
+            proxy_list = [parse_ip(item) for item in proxy_list.split("\n") if re.search(r'^\s*\d+[\d\.\-\*\s]*', item)]
+
+        insts_df.at[idx, "IP Addresses"] = ip_list + proxy_list
+
+    # Drop Proxy Server column
+    insts_df.drop(["Proxy Server"], axis=1, inplace=True)
 
     return insts_df
 
@@ -153,13 +161,13 @@ def ips_to_df(file_path, skip_rows):
         df = pd.read_excel(file_path, skiprows=skip_rows)
 
         # Select institution name, IP Addresses and Email columns
-        df = df[['Institution', 'IP Addresses', 'Abbreviation']]
-
-        # Rename IP column
-        df = df.rename(columns={'IP Addresses': 'IPs'})
+        df = df[['Institution', 'IP Addresses', 'Proxy Server', 'Abbreviation']]
 
         # Remove rows where institution name is NaN 
-        df = df.dropna(subset=['Institution', 'IPs']).reset_index(drop=True)
+        df = df.dropna(subset=['Institution']).reset_index(drop=True)
+
+        # Deal with NaN values
+        df[['Proxy Server', 'IP Addresses']] = df[['Proxy Server', 'IP Addresses']].fillna("")
 
         # Remove any leading and trailing spaces in each institution name
         df['Institution'] = df['Institution'].apply(lambda name: name.strip() if isinstance(name, str) else name)

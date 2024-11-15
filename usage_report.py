@@ -1,8 +1,8 @@
 
 from filter_logs import filter_ips
 from ip_parser import process_ip_file
-import pandas as pd 
 import argparse
+import pandas as pd 
 import os
 
 def translate_month(month):
@@ -138,7 +138,7 @@ def count_views(log_file, inst_ips):
         - `Total`: Total number of views across all request paths for each day.
     """
     # Extract the IP networks for the institution
-    ip_networks = inst_ips.iloc[0]['IPs']
+    ip_networks = inst_ips.iloc[0]['IP Addresses']
 
     # Access log file
     log_df = pd.read_csv(log_file, index_col=False, on_bad_lines='skip')
@@ -224,6 +224,8 @@ def main():
     # Parse the arguments
     args = parser.parse_args()
 
+    # Variables
+    master_file_path = "data/reports/usage-report.xlsx"
     ip_file = 'data/IP_addresses.xlsx'
     skip_rows = 2
 
@@ -240,14 +242,12 @@ def main():
     inst_name = args.institution
 
     # Get row for institution
-    inst_ips = ips_df[(ips_df['Institution'].str.lower() == inst_name.lower())
-                    | (ips_df['Abbreviation'].str.lower() == inst_name.lower())]
+    inst_ips = ips_df[(ips_df['Institution'].str.lower() == inst_name.strip().lower())
+                    | (ips_df['Abbreviation'].str.lower() == inst_name.strip().lower())]
     
     if check_inst_name(inst_ips, inst_name):
         # Count the number of views for inst_name
-        view_counts_df = count_views(args.logs, inst_ips)
-        
-        file_name = "data/reports/usage-report.xlsx"
+        usage_df = count_views(args.logs, inst_ips)
         
         # Use institution name abbreviation if it exceeds 30 characters (Excel sheet naming limit)
         if len(inst_ips['Institution'].iloc[0]) > 30:
@@ -255,10 +255,10 @@ def main():
         else:
             inst_name = inst_ips['Institution'].iloc[0]
         
-        print(view_counts_df.to_string(index=False))
+        print(usage_df.to_string(index=False))
         
         # Update (or create new) institution sheet in usage reports file
-        update_file(view_counts_df, file_name, inst_name)
+        update_file(usage_df, master_file_path, inst_name)
         
         print()
 
