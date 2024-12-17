@@ -1,6 +1,18 @@
 # institutional-usage
 Scripts to generate institutional usage statistics for the Canadiana collections. 
 
+- [institutional-usage](#institutional-usage)
+  - [Workflow Overview](#workflow-overview)
+  - [Getting started](#getting-started)
+  - [Usage Overview](#usage-overview)
+    - [1. Manual Execution](#1-manual-execution)
+      - [Parse Raw Logs](#parse-raw-logs)
+      - [Generate the Usage Report](#generate-the-usage-report)
+      - [Run IP Address Lookup](#run-ip-address-lookup)
+    - [2. Automated Execution](#2-automated-execution)
+    - [3. Output](#3-output)
+  - [License](#license)
+
 ## Workflow Overview
 The workflow of the script is illustrated in the diagram below:
 
