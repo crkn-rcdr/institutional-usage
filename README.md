@@ -1,4 +1,10 @@
+# institutional-usage
+
+Scripts to generate institutional usage statistics for the Canadiana collections.
+
+## Table of Contents
 - [institutional-usage](#institutional-usage)
+  - [Table of Contents](#table-of-contents)
   - [Workflow Overview](#workflow-overview)
   - [Getting started](#getting-started)
   - [Usage Overview](#usage-overview)
@@ -10,10 +16,6 @@
     - [3. Output](#3-output)
   - [License](#license)
   
-# institutional-usage
-
-Scripts to generate institutional usage statistics for the Canadiana collections.
-
 ## Workflow Overview
 The workflow of the script is illustrated in the diagram below:
 
