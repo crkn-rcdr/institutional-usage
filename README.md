@@ -79,8 +79,7 @@ python logs_parser.py <raw_logs_folder_path>
   
 #### Generate the Usage Report
 
-Run the `usage_report.py` script to create the Excel usage report based on the filtered logs and 
-institution IP addresses.
+Run the `usage_report.py` script to create the Excel usage report based on the filtered logs and institution IP addresses using the following command:
 
 ```bash
 python usage_report.py <institution> <logs>
@@ -101,7 +100,7 @@ One way to do that is opening a python terminal, loading the script, and running
 from ip_parser import *
 
 # Path to the IP address Excel file
-file_path = "institution data file_path"
+file_path = "IP Addresses Excel file path"
 
 # Process the IP data (skipping non-header rows)
 ips_df = ips_to_df(file_path, 2)
