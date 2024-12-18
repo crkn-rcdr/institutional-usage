@@ -200,10 +200,10 @@ def process_ip_file(file_path, skip_rows):
             - Returns `None` if the file cannot be processed.
     """
     # Attempt to load the DataFrame
-    insts_df = ips_to_df(file_path, skip_rows)
+    ips_df = ips_to_df(file_path, skip_rows)
 
     # If loading was successful, process the IP addresses
-    if insts_df is not None:
-        return process_ips(insts_df)
+    if ips_df is not None:
+        return process_ips(ips_df)
 
     return None

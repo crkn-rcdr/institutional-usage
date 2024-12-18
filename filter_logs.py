@@ -1,7 +1,7 @@
-import pandas as pd
-from ip_parser import is_ip_match
 from dotenv import load_dotenv
+from ip_parser import is_ip_match
 import os
+import pandas as pd
 import re
 
 def filter_ips(df, ip_networks):

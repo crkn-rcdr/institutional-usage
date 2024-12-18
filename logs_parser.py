@@ -1,8 +1,8 @@
-import pandas as pd
-import os
 from filter_logs import * 
 import argparse
 from datetime import date
+import os
+import pandas as pd
 
 def logs_parser(folder_path):
     """

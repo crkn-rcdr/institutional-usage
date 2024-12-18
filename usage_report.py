@@ -1,7 +1,6 @@
-
+import argparse
 from filter_logs import filter_ips
 from ip_parser import process_ip_file
-import argparse
 import pandas as pd 
 import os
 
